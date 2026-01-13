@@ -45,7 +45,7 @@ function App() {
   ========================= */
   const fetchSessions = useCallback(async () => {
     try {
-      const res = await axios.get("http://localhost:5000/api/chat/sessions");
+      const res = await axios.get("https://ai-chatbot-6kdx.onrender.com/api/chat/sessions");
       setSessions(res.data.sessions || []);
     } catch (err) {
       console.error("Sessions fetch error:", err);
@@ -65,7 +65,7 @@ function App() {
     const fetchHistory = async () => {
       try {
         const res = await axios.get(
-          `http://localhost:5000/api/chat/history/${sessionId}`
+          `https://ai-chatbot-6kdx.onrender.com/api/chat/history/${sessionId}`
         );
 
         if (!res.data.history || res.data.history.length === 0) {
@@ -105,7 +105,7 @@ function App() {
     setLoading(true);
 
     try {
-      const res = await axios.post("http://localhost:5000/api/chat", {
+      const res = await axios.post("https://ai-chatbot-6kdx.onrender.com/api/chat", {
         message: currentMessage,
         sessionId
       });
