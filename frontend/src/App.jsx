@@ -1,54 +1,49 @@
-import { useState, useEffect, useRef, useCallback } from "react";
-import axios from "axios";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
+import { useEffect, useRef, useState, useCallback } from "react";
 import "./App.css";
-import 'boxicons';
+import "boxicons";
+
+import Sidebar from "./components/Sidebar";
+import ChatContainer from "./components/ChatContainer";
+
+import useTheme from "./hooks/useTheme";
+import useSpeechRecognition from "./hooks/useSpeechRecognition";
+
+import {
+  fetchSessionsAPI,
+  fetchHistoryAPI,
+  sendMessageAPI
+} from "./services/chatService";
 
 function App() {
   const [message, setMessage] = useState("");
   const [chat, setChat] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [listening, setListening] = useState(false);
   const [sessionId, setSessionId] = useState("");
   const [sessions, setSessions] = useState([]);
   const [isInitialized, setIsInitialized] = useState(false);
 
-  const [darkMode, setDarkMode] = useState(true); // theme state
-
   const chatEndRef = useRef(null);
-  const recognitionRef = useRef(null);
 
-  /* =========================
-     THEME TOGGLE
-  ========================= */
+  const { darkMode, toggleTheme } = useTheme();
+  const { listening, toggleMic } = useSpeechRecognition(setMessage);
+
+  /* ================= SESSION INIT ================= */
   useEffect(() => {
-    document.body.className = darkMode ? "dark" : "light";
-  }, [darkMode]);
-
-  const toggleTheme = () => setDarkMode(prev => !prev);
-
-  /* =========================
-     SESSION INIT
-  ========================= */
-  useEffect(() => {
-    let savedSession = localStorage.getItem("chat-session");
-    if (!savedSession) {
-      savedSession = "session-" + Date.now();
-      localStorage.setItem("chat-session", savedSession);
+    let s = localStorage.getItem("chat-session");
+    if (!s) {
+      s = "session-" + Date.now();
+      localStorage.setItem("chat-session", s);
     }
-    setSessionId(savedSession);
+    setSessionId(s);
   }, []);
 
-  /* =========================
-     FETCH SESSIONS
-  ========================= */
+  /* ================= FETCH SESSIONS ================= */
   const fetchSessions = useCallback(async () => {
     try {
-      const res = await axios.get("https://ai-chatbot-6kdx.onrender.com/api/chat/sessions");
+      const res = await fetchSessionsAPI();
       setSessions(res.data.sessions || []);
     } catch (err) {
-      console.error("Sessions fetch error:", err);
+      console.error(err);
     }
   }, []);
 
@@ -56,211 +51,92 @@ function App() {
     fetchSessions();
   }, [fetchSessions]);
 
-  /* =========================
-     FETCH CHAT HISTORY
-  ========================= */
+  /* ================= FETCH CHAT HISTORY ================= */
   useEffect(() => {
     if (!sessionId || isInitialized) return;
 
-    const fetchHistory = async () => {
-      try {
-        const res = await axios.get(
-          `https://ai-chatbot-6kdx.onrender.com/api/chat/history/${sessionId}`
-        );
+    fetchHistoryAPI(sessionId).then(res => {
+      const history = [];
 
-        if (!res.data.history || res.data.history.length === 0) {
-          setChat([]);
-          return;
-        }
+      res.data.history?.forEach(item => {
+        history.push({ role: "user", text: item.userMessage });
+        history.push({ role: "assistant", text: item.botReply });
+      });
 
-        const formattedChat = [];
-
-        res.data.history.forEach(item => {
-          formattedChat.push({ role: "user", text: item.userMessage });
-          formattedChat.push({ role: "assistant", text: item.botReply });
-        });
-
-        setChat(formattedChat);
-      } catch (err) {
-        console.error("History fetch error:", err);
-      } finally {
-        setIsInitialized(true);
-      }
-    };
-
-    fetchHistory();
+      setChat(history);
+      setIsInitialized(true);
+    });
   }, [sessionId, isInitialized]);
 
-  /* =========================
-     SEND MESSAGE
-  ========================= */
+  /* ================= SEND MESSAGE ================= */
   const sendMessage = async () => {
-    if (!message.trim() || !sessionId) return;
+    if (!message.trim()) return;
 
-    const userMsg = { role: "user", text: message };
-    setChat(prev => [...prev, userMsg]);
-
-    const currentMessage = message;
+    setChat(prev => [...prev, { role: "user", text: message }]);
+    const current = message;
     setMessage("");
     setLoading(true);
 
     try {
-      const res = await axios.post("https://ai-chatbot-6kdx.onrender.com/api/chat", {
-        message: currentMessage,
-        sessionId
-      });
+      const res = await sendMessageAPI(current, sessionId);
+      const aiText = res.data.reply;
 
-      const botMsg = { role: "assistant", text: res.data.reply };
-      setChat(prev => [...prev, botMsg]);
-
+      setChat(prev => [...prev, { role: "assistant", text: aiText }]);
       fetchSessions();
-
-      // Text to speech
-      const utter = new SpeechSynthesisUtterance(res.data.reply);
-      speechSynthesis.speak(utter);
     } catch (err) {
       setChat(prev => [
-        { role: "assistant", text: "Error: " + (err.response?.data?.error || err.message) }
+        ...prev,
+        { role: "assistant", text: "Error generating response." }
       ]);
     } finally {
       setLoading(false);
     }
   };
 
-  /* =========================
-     AUTO SCROLL
-  ========================= */
+  /* ================= AUTO SCROLL ================= */
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chat]);
 
-  /* =========================
-     SPEECH RECOGNITION
-  ========================= */
-  useEffect(() => {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) return;
-
-    recognitionRef.current = new SpeechRecognition();
-    recognitionRef.current.lang = "en-US";
-    recognitionRef.current.interimResults = false;
-
-    recognitionRef.current.onresult = e => {
-      setMessage(e.results[0][0].transcript);
-    };
-
-    recognitionRef.current.onend = () => setListening(false);
-  }, []);
-
-  const handleMicClick = () => {
-    if (!recognitionRef.current) return;
-    listening ? recognitionRef.current.stop() : recognitionRef.current.start();
-    setListening(!listening);
-  };
-
-  /* =========================
-     NEW CHAT
-  ========================= */
+  /* ================= NEW CHAT ================= */
   const createNewChat = () => {
-    const newSessionId = "session-" + Date.now();
-    localStorage.setItem("chat-session", newSessionId);
-    setSessionId(newSessionId);
+    const id = "session-" + Date.now();
+    localStorage.setItem("chat-session", id);
+    setSessionId(id);
     setChat([]);
     setIsInitialized(true);
   };
 
-  /* =========================
-     SWITCH CHAT
-  ========================= */
-  const switchSession = newSessionId => {
-    localStorage.setItem("chat-session", newSessionId);
-    setSessionId(newSessionId);
+  /* ================= SWITCH CHAT ================= */
+  const switchSession = id => {
+    localStorage.setItem("chat-session", id);
+    setSessionId(id);
     setChat([]);
     setIsInitialized(false);
   };
 
-  /* =========================
-     UI
-  ========================= */
   return (
     <div className="app">
-      {/* SIDEBAR */}
-      <div className="sidebar">
-        <div className="sidebar-header">
-          <h2>Chats</h2>
-          <button onClick={fetchSessions}>
-            <i className="bx bx-refresh"></i>
-          </button>
-          <button onClick={createNewChat}>
-            <i className="bx bx-plus"></i>
-          </button>
-          <button onClick={toggleTheme}>
-            {darkMode ? <i className="bx bx-sun"></i> : <i className="bx bx-moon"></i>}
-          </button>
-        </div>
+      <Sidebar
+        sessions={sessions}
+        sessionId={sessionId}
+        fetchSessions={fetchSessions}
+        createNewChat={createNewChat}
+        switchSession={switchSession}
+        toggleTheme={toggleTheme}
+        darkMode={darkMode}
+      />
 
-        <ul>
-          {sessions.length === 0 ? (
-            <li className="no-chats">No chats yet</li>
-          ) : (
-            sessions.map(s => (
-              <li
-                key={s.sessionId}
-                className={s.sessionId === sessionId ? "active" : ""}
-                onClick={() => switchSession(s.sessionId)}
-                title={s.title}
-              >
-                {s.title || s.sessionId.substring(0, 20)}
-              </li>
-            ))
-          )}
-        </ul>
-      </div>
-
-      {/* CHAT AREA */}
-      <div className="chat-container">
-        <div className="chat-header">NEXA AI</div>
-
-        <div className="chat-body">
-          {chat.length === 0 ? (
-            <div className="empty-chat">Start a new conversation</div>
-          ) : (
-            chat.map((msg, i) => (
-              <div key={i} className={`message ${msg.role === "user" ? "user" : "bot"}`}>
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                  {msg.text}
-                </ReactMarkdown>
-              </div>
-            ))
-          )}
-
-          {loading && (
-            <div className="message bot">
-              Typing <i className="bx bx-loader-alt bx-spin"></i>
-            </div>
-          )}
-
-          <div ref={chatEndRef} />
-        </div>
-
-        {/* INPUT */}
-        <div className="chat-input">
-          <input
-            value={message}
-            onChange={e => setMessage(e.target.value)}
-            placeholder="Type your message..."
-            onKeyDown={e => e.key === "Enter" && !e.shiftKey && sendMessage()}
-          />
-
-          <button onClick={handleMicClick}>
-            {listening ? <i className="bx bx-stop"></i> : <i className="bx bx-microphone"></i>}
-          </button>
-
-          <button onClick={sendMessage} disabled={loading || !message.trim()}>
-            {loading ? <i className="bx bx-loader bx-spin"></i> : <i className="bx bx-send"></i>}
-          </button>
-        </div>
-      </div>
+      <ChatContainer
+        chat={chat}
+        loading={loading}
+        chatEndRef={chatEndRef}
+        message={message}
+        setMessage={setMessage}
+        sendMessage={sendMessage}
+        listening={listening}
+        toggleMic={toggleMic}
+      />
     </div>
   );
 }
