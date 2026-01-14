@@ -1,3 +1,13 @@
+import React from "react";
+
+/**
+ * Sidebar Component
+ * -----------------
+ * Mobile friendly
+ * Hamburger compatible
+ * No backend / logic changes required
+ */
+
 export default function Sidebar({
   sessions,
   sessionId,
@@ -5,45 +15,68 @@ export default function Sidebar({
   createNewChat,
   switchSession,
   toggleTheme,
-  darkMode
+  darkMode,
+  isOpen,
+  closeSidebar
 }) {
   return (
-    <div className="sidebar">
+    <aside className={`sidebar ${isOpen ? "open" : ""}`}>
+      
+      {/* ===============================
+          HEADER
+      =============================== */}
       <div className="sidebar-header">
         <h2>Chats</h2>
 
-        <button onClick={fetchSessions}>
-          <i className="bx bx-refresh"></i>
-        </button>
+        <div style={{ display: "flex", gap: "6px" }}>
+          <button onClick={fetchSessions} title="Refresh">
+            <i className="bx bx-refresh"></i>
+          </button>
 
-        <button onClick={createNewChat}>
-          <i className="bx bx-plus"></i>
-        </button>
+          <button onClick={createNewChat} title="New Chat">
+            <i className="bx bx-plus"></i>
+          </button>
 
-        <button onClick={toggleTheme}>
-          {darkMode ? (
-            <i className="bx bx-sun"></i>
-          ) : (
-            <i className="bx bx-moon"></i>
-          )}
-        </button>
+          <button onClick={toggleTheme} title="Toggle Theme">
+            {darkMode ? (
+              <i className="bx bx-sun"></i>
+            ) : (
+              <i className="bx bx-moon"></i>
+            )}
+          </button>
+
+          {/* Mobile Close */}
+          <button
+            className="mobile-close"
+            onClick={closeSidebar}
+            title="Close"
+          >
+            <i className="bx bx-x"></i>
+          </button>
+        </div>
       </div>
 
+      {/* ===============================
+          CHAT LIST
+      =============================== */}
       <ul>
         {sessions.length === 0 ? (
           <li className="no-chats">No chats yet</li>
         ) : (
-          sessions.map(s => (
+          sessions.map((s) => (
             <li
               key={s.sessionId}
               className={s.sessionId === sessionId ? "active" : ""}
-              onClick={() => switchSession(s.sessionId)}
+              onClick={() => {
+                switchSession(s.sessionId);
+                closeSidebar?.(); // auto-close on mobile
+              }}
             >
-              {s.title || s.sessionId.substring(0, 20)}
+              {s.title || `Chat ${s.sessionId.slice(0, 8)}`}
             </li>
           ))
         )}
       </ul>
-    </div>
+    </aside>
   );
 }

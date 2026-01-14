@@ -15,6 +15,7 @@
   --radius-md: 8px;
   --shadow-light: rgba(0, 0, 0, 0.1);
   --shadow-dark: rgba(0, 0, 0, 0.2);
+  --sidebar-width: 260px;
 }
 
 /* Dark Mode */
@@ -51,9 +52,9 @@ body {
   background: var(--bg-main);
 }
 
-/* Touch friendly */
 button {
   touch-action: manipulation;
+  cursor: pointer;
 }
 
 /* ===============================
@@ -62,20 +63,22 @@ button {
 .app {
   height: 100vh;
   display: flex;
-  overflow: hidden;
+  position: relative;
 }
 
 /* ===============================
-   SIDEBAR
+   SIDEBAR (Mobile Responsive)
 ================================ */
 .sidebar {
-  width: 260px;
+  width: var(--sidebar-width);
   padding: 20px 16px;
   background: var(--bg-panel);
   border-right: 1px solid #dcdde1;
   display: flex;
   flex-direction: column;
   box-shadow: 2px 0 6px var(--shadow-light);
+  transition: transform 0.3s ease-in-out;
+  z-index: 1000;
 }
 
 .sidebar-header {
@@ -100,36 +103,24 @@ button {
   border-radius: 8px;
   background: var(--accent);
   color: white;
-  cursor: pointer;
   font-size: 18px;
   box-shadow: 0 2px 6px var(--shadow-dark);
-  transition: all 0.2s ease;
-}
-
-.sidebar-header button:hover {
-  background: var(--accent-hover);
-  transform: translateY(-2px);
 }
 
 .sidebar ul {
   list-style: none;
   overflow-y: auto;
   flex: 1;
-  padding-right: 4px;
 }
 
 .sidebar li {
   padding: 12px 16px;
   border-radius: var(--radius-md);
   margin-bottom: 10px;
-  cursor: pointer;
   transition: all 0.2s ease;
 }
 
-.sidebar li:hover {
-  background: var(--bg-card);
-}
-
+.sidebar li:hover { background: var(--bg-card); }
 .sidebar li.active {
   background: var(--accent);
   color: white;
@@ -144,9 +135,9 @@ button {
   display: flex;
   flex-direction: column;
   background: var(--bg-main);
+  min-width: 0; /* Prevents flex items from overflowing */
 }
 
-/* Header */
 .chat-header {
   padding: 16px;
   text-align: center;
@@ -155,10 +146,13 @@ button {
   background: var(--bg-panel);
   border-bottom: 1px solid #dcdde1;
   box-shadow: 0 2px 4px var(--shadow-light);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 /* ===============================
-   CHAT BODY
+   CHAT BODY & MESSAGES
 ================================ */
 .chat-body {
   flex: 1;
@@ -167,19 +161,8 @@ button {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  background: var(--bg-main);
-  -webkit-overflow-scrolling: touch;
 }
 
-.empty-chat {
-  text-align: center;
-  color: var(--text-muted);
-  font-style: italic;
-}
-
-/* ===============================
-   MESSAGES
-================================ */
 .message {
   max-width: 70%;
   padding: 14px 18px;
@@ -187,7 +170,6 @@ button {
   font-size: 15px;
   line-height: 1.5;
   word-wrap: break-word;
-  transition: transform 0.2s, box-shadow 0.2s;
 }
 
 .message.user {
@@ -203,12 +185,13 @@ button {
   box-shadow: 0 2px 8px var(--shadow-light);
 }
 
-/* Markdown */
+/* Markdown styling */
 .message code {
   background: #e1e5ea;
   padding: 4px 6px;
   border-radius: 6px;
   font-family: monospace;
+  color: #16a34a;
 }
 
 .message pre {
@@ -217,10 +200,12 @@ button {
   border-radius: var(--radius-md);
   overflow-x: auto;
   font-size: 13px;
+  color: #16a34a;
+  margin-top: 8px;
 }
 
 /* ===============================
-   INPUT
+   INPUT AREA
 ================================ */
 .chat-input {
   display: flex;
@@ -228,7 +213,6 @@ button {
   padding: 16px;
   background: var(--bg-panel);
   border-top: 1px solid #dcdde1;
-  box-shadow: 0 -2px 4px var(--shadow-light);
 }
 
 .chat-input input {
@@ -240,86 +224,43 @@ button {
   font-size: 15px;
 }
 
-.chat-input input:focus {
-  outline: none;
-  border-color: var(--accent);
-}
-
 .chat-input button {
-  padding: 12px 16px;
+  padding: 12px 20px;
   border-radius: var(--radius-lg);
   border: none;
   background: var(--accent);
   color: white;
-  cursor: pointer;
-  font-size: 16px;
-  transition: background 0.2s, transform 0.15s;
-}
-
-.chat-input button:hover {
-  background: var(--accent-hover);
+  font-weight: 600;
 }
 
 /* ===============================
-   SCROLLBAR
-================================ */
-.chat-body::-webkit-scrollbar {
-  width: 6px;
-}
-
-.chat-body::-webkit-scrollbar-thumb {
-  background: var(--accent);
-  border-radius: 10px;
-}
-
-/* ===============================
-   MOBILE RESPONSIVE
+   MOBILE RESPONSIVE OVERRIDES
 ================================ */
 @media (max-width: 768px) {
-
-  .app {
-    flex-direction: column;
-  }
-
   .sidebar {
-    display: none;
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    transform: translateX(-100%); /* Hidden by default on mobile */
   }
 
-  .chat-container {
-    height: 100vh;
-    width: 100%;
-  }
-
-  .chat-header {
-    font-size: 16px;
-    padding: 14px;
-  }
-
-  .chat-body {
-    padding: 14px;
-    gap: 12px;
+  /* When a class 'open' is added via JS */
+  .sidebar.open {
+    transform: translateX(0);
+    box-shadow: 5px 0 15px var(--shadow-dark);
   }
 
   .message {
-    max-width: 90%;
+    max-width: 85%;
     font-size: 14px;
-    padding: 12px 14px;
   }
 
   .chat-input {
-    position: sticky;
-    bottom: 0;
     padding: 12px;
-    gap: 8px;
   }
 
   .chat-input input {
     font-size: 14px;
-    padding: 10px 12px;
-  }
-
-  .chat-input button {
-    padding: 10px 12px;
-    font-size: 18px;
   }
 }
