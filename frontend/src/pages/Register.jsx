@@ -14,7 +14,7 @@ export default function Register({ onRegistered }) {
     e.preventDefault();
     setLoading(true);
     try {
-      await axios.post("http://localhost:5000/api/auth/register", { name, email, password });
+      await axios.post("https://ai-chatbot-8-2hi4.onrender.com/api/auth/register", { name, email, password });
 
       // Optional success message
       alert("Registration successful! Redirecting to login...");
