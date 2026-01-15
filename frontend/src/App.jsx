@@ -12,18 +12,28 @@ function App() {
     return params.get("token");
   };
 
-  const initialToken = localStorage.getItem("token") || getTokenFromURL();
-  const [isAuth, setIsAuth] = useState(!!initialToken);
+  const [isAuth, setIsAuth] = useState(false);
+  const [checkingAuth, setCheckingAuth] = useState(true); // ✅ wait for token check
 
-  /* ================= GOOGLE LOGIN REDIRECT ================= */
   useEffect(() => {
-    const token = getTokenFromURL();
+    const token = localStorage.getItem("token") || getTokenFromURL();
     if (token) {
       localStorage.setItem("token", token);
+<<<<<<< HEAD
       window.history.replaceState({}, document.title, "/"); // clean URL
+=======
+>>>>>>> 07c4cbc (changes)
       setIsAuth(true);
     }
+    // Clean the URL
+    window.history.replaceState({}, document.title, "/");
+    setCheckingAuth(false);
   }, []);
+
+  if (checkingAuth) {
+    // Wait until token is checked
+    return <div>Loading...</div>;
+  }
 
   return (
     <Routes>

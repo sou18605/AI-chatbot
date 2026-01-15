@@ -1,16 +1,22 @@
 import { useEffect, useRef, useState, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
+
 import Sidebar from "../components/Sidebar";
 import ChatContainer from "../components/ChatContainer";
 import useTheme from "../hooks/useTheme";
 import useSpeechRecognition from "../hooks/useSpeechRecognition";
-import "../App.css"
+
 import {
   fetchSessionsAPI,
   fetchHistoryAPI,
   sendMessageAPI
 } from "../services/chatService";
 
+import "../App.css";
+
 export default function ChatPage({ setIsAuth }) {
+  const navigate = useNavigate();
+
   const [message, setMessage] = useState("");
   const [chat, setChat] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -21,6 +27,17 @@ export default function ChatPage({ setIsAuth }) {
   const chatEndRef = useRef(null);
   const { darkMode, toggleTheme } = useTheme();
   const { listening, toggleMic } = useSpeechRecognition(setMessage);
+
+  /* ================= AUTH GUARD ================= */
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setIsAuth(false);
+      navigate("/login", { replace: true });
+    } else {
+      setIsAuth(true);
+    }
+  }, [navigate, setIsAuth]);
 
   /* ================= SESSION INIT ================= */
   useEffect(() => {
@@ -46,7 +63,7 @@ export default function ChatPage({ setIsAuth }) {
     fetchSessions();
   }, [fetchSessions]);
 
-  /* ================= FETCH CHAT HISTORY ================= */
+  /* ================= FETCH HISTORY ================= */
   useEffect(() => {
     if (!sessionId || isInitialized) return;
 
@@ -72,11 +89,9 @@ export default function ChatPage({ setIsAuth }) {
 
     try {
       const res = await sendMessageAPI(currentMessage, sessionId);
-      const aiText = res.data.reply;
-
-      setChat(prev => [...prev, { role: "assistant", text: aiText }]);
+      setChat(prev => [...prev, { role: "assistant", text: res.data.reply }]);
       fetchSessions();
-    } catch (err) {
+    } catch {
       setChat(prev => [
         ...prev,
         { role: "assistant", text: "Error generating response." }
@@ -97,7 +112,7 @@ export default function ChatPage({ setIsAuth }) {
     localStorage.setItem("chat-session", id);
     setSessionId(id);
     setChat([]);
-    setIsInitialized(true);
+    setIsInitialized(false);
   };
 
   /* ================= SWITCH CHAT ================= */
@@ -129,7 +144,7 @@ export default function ChatPage({ setIsAuth }) {
         sendMessage={sendMessage}
         listening={listening}
         toggleMic={toggleMic}
-        setIsAuth={setIsAuth} // pass down logout handler
+        setIsAuth={setIsAuth}
       />
     </div>
   );
