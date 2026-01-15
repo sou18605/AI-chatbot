@@ -6,7 +6,7 @@ import Register from "./pages/Register";
 import ChatPage from "./pages/ChatPage";
 
 function App() {
-  // Check localStorage AND URL for token
+  // Get token from URL (Google OAuth redirect)
   const getTokenFromURL = () => {
     const params = new URLSearchParams(window.location.search);
     return params.get("token");
@@ -20,7 +20,7 @@ function App() {
     const token = getTokenFromURL();
     if (token) {
       localStorage.setItem("token", token);
-      window.history.replaceState({}, document.title, "/"); // clean URL
+      window.history.replaceState({}, document.title, "/");
       setIsAuth(true);
     }
   }, []);
@@ -30,13 +30,13 @@ function App() {
       {/* Default route */}
       <Route
         path="/"
-        element={isAuth ? <Navigate to="/chat" /> : <Navigate to="/register" />}
+        element={isAuth ? <Navigate to="/chat" /> : <Navigate to="/login" />}
       />
 
       {/* Register */}
       <Route
         path="/register"
-        element={!isAuth ? <Register onRegistered={() => setIsAuth(true)} /> : <Navigate to="/chat" />}
+        element={!isAuth ? <Register /> : <Navigate to="/chat" />}
       />
 
       {/* Login */}
@@ -52,7 +52,10 @@ function App() {
       />
 
       {/* Catch-all */}
-      <Route path="*" element={<Navigate to={isAuth ? "/chat" : "/register"} />} />
+      <Route
+        path="*"
+        element={<Navigate to={isAuth ? "/chat" : "/login"} />}
+      />
     </Routes>
   );
 }
