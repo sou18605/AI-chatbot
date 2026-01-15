@@ -6,33 +6,30 @@ import Register from "./pages/Register";
 import ChatPage from "./pages/ChatPage";
 
 function App() {
-  // Check localStorage AND URL for token
+  // Check if token exists in URL query
   const getTokenFromURL = () => {
     const params = new URLSearchParams(window.location.search);
     return params.get("token");
   };
 
   const [isAuth, setIsAuth] = useState(false);
-  const [checkingAuth, setCheckingAuth] = useState(true); // ✅ wait for token check
+  const [checkingAuth, setCheckingAuth] = useState(true); // Wait until auth is checked
 
   useEffect(() => {
     const token = localStorage.getItem("token") || getTokenFromURL();
+
     if (token) {
       localStorage.setItem("token", token);
-<<<<<<< HEAD
-      window.history.replaceState({}, document.title, "/"); // clean URL
-=======
->>>>>>> 07c4cbc (changes)
       setIsAuth(true);
     }
-    // Clean the URL
+
+    // Clean URL regardless of token presence
     window.history.replaceState({}, document.title, "/");
     setCheckingAuth(false);
   }, []);
 
   if (checkingAuth) {
-    // Wait until token is checked
-    return <div>Loading...</div>;
+    return <div>Loading...</div>; // Show loading while checking token
   }
 
   return (
@@ -46,13 +43,17 @@ function App() {
       {/* Register */}
       <Route
         path="/register"
-        element={!isAuth ? <Register onRegistered={() => setIsAuth(true)} /> : <Navigate to="/chat" />}
+        element={
+          !isAuth ? <Register onRegistered={() => setIsAuth(true)} /> : <Navigate to="/chat" />
+        }
       />
 
       {/* Login */}
       <Route
         path="/login"
-        element={!isAuth ? <Login onLogin={() => setIsAuth(true)} /> : <Navigate to="/chat" />}
+        element={
+          !isAuth ? <Login onLogin={() => setIsAuth(true)} /> : <Navigate to="/chat" />
+        }
       />
 
       {/* Chat Page */}
