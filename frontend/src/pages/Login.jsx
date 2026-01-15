@@ -6,77 +6,51 @@ import "./Auth.css"; // CSS file for styling
 export default function Login({ onLogin }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
   const navigate = useNavigate();
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    setError("");
+
     try {
-<<<<<<< HEAD
-      const res = await axios.post("https://ai-chatbot-8-2hi4.onrender.com/api/auth/login", { email, password });
-=======
-      const res = await axios.post("http://localhost:5000/api/auth/login", { email, password });
->>>>>>> 36d918a (changes)
+      const API_URL = process.env.REACT_APP_API_URL;
+      const res = await axios.post(`${API_URL}/api/auth/login`, { email, password });
 
       // Save token and user info
       localStorage.setItem("token", res.data.token);
       localStorage.setItem("user", JSON.stringify(res.data.user));
 
-      // Update App auth state
-      onLogin();
+      if (onLogin) onLogin(res.data.user);
 
-      // Navigate to chat page
-      navigate("/chat", { replace: true });
+      navigate("/dashboard"); // redirect after login
     } catch (err) {
-      alert(err.response?.data?.message || "Login failed");
+      console.error(err);
+      setError(err.response?.data?.message || "Login failed. Please try again.");
     }
   };
 
-  const handleGoogleLogin = () => {
-<<<<<<< HEAD
-    window.location.href = "https://ai-chatbot-8-2hi4.onrender.com/api/auth/google";
-=======
-    window.location.href = "http://localhost:5000/api/auth/google";
->>>>>>> 36d918a (changes)
-  };
-
   return (
-    <div className="login-container">
-      <div className="login-card">
-        <h2 className="login-title">Login</h2>
-        <form onSubmit={handleLogin} className="login-form">
-          <input
-            className="login-input"
-            placeholder="Email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-          <input
-            className="login-input"
-            placeholder="Password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-          <button type="submit" className="login-button">
-            Login
-          </button>
-        </form>
-        <div className="divider">
-          <span>OR</span>
-        </div>
-        <button className="google-button" onClick={handleGoogleLogin}>
-          Login with Google
-        </button>
-        <p className="login-register-text">
-          Don't have an account?{" "}
-          <span className="register-link" onClick={() => navigate("/register")}>
-            Register
-          </span>
-        </p>
-      </div>
+    <div className="auth-container">
+      <h2>Login</h2>
+      {error && <p className="error">{error}</p>}
+      <form onSubmit={handleLogin}>
+        <input
+          type="email"
+          placeholder="Email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+        />
+        <input
+          type="password"
+          placeholder="Password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+        />
+        <button type="submit">Login</button>
+      </form>
     </div>
   );
 }
