@@ -28,7 +28,7 @@ export default function Login({ onLogin }) {
   };
 
   const handleGoogleLogin = () => {
-    window.location.href = "http://localhost:5000/api/auth/google";
+    window.location.href = "https://ai-chatbot-8-2hi4.onrender.com/api/auth/google";
   };
 
   return (
