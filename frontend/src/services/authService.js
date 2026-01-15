@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API = "http://localhost:5000/api/auth";
+const API = "https://ai-chatbot-8-2hi4.onrender.com/api/auth";
 
 export const loginAPI = (data) =>
   axios.post(`${API}/login`, data);
