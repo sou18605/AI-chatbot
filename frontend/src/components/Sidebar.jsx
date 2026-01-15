@@ -29,9 +29,7 @@ export default function Sidebar({
         <h2>Chats</h2>
 
         <div style={{ display: "flex", gap: "6px" }}>
-          <button onClick={fetchSessions} title="Refresh">
-            <i className="bx bx-refresh"></i>
-          </button>
+
 
           <button onClick={createNewChat} title="New Chat">
             <i className="bx bx-plus"></i>
@@ -46,13 +44,6 @@ export default function Sidebar({
           </button>
 
           {/* Mobile Close */}
-          <button
-            className="mobile-close"
-            onClick={closeSidebar}
-            title="Close"
-          >
-            <i className="bx bx-x"></i>
-          </button>
         </div>
       </div>
 

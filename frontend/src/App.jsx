@@ -1,143 +1,59 @@
-import { useEffect, useRef, useState, useCallback } from "react";
-import "./App.css";
-import "boxicons";
+import React, { useState, useEffect } from "react";
+import { Routes, Route, Navigate } from "react-router-dom";
 
-import Sidebar from "./components/Sidebar";
-import ChatContainer from "./components/ChatContainer";
-
-import useTheme from "./hooks/useTheme";
-import useSpeechRecognition from "./hooks/useSpeechRecognition";
-
-import {
-  fetchSessionsAPI,
-  fetchHistoryAPI,
-  sendMessageAPI
-} from "./services/chatService";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
+import ChatPage from "./pages/ChatPage";
 
 function App() {
-  const [message, setMessage] = useState("");
-  const [chat, setChat] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [sessionId, setSessionId] = useState("");
-  const [sessions, setSessions] = useState([]);
-  const [isInitialized, setIsInitialized] = useState(false);
+  // Check localStorage AND URL for token
+  const getTokenFromURL = () => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("token");
+  };
 
-  const chatEndRef = useRef(null);
+  const initialToken = localStorage.getItem("token") || getTokenFromURL();
+  const [isAuth, setIsAuth] = useState(!!initialToken);
 
-  const { darkMode, toggleTheme } = useTheme();
-  const { listening, toggleMic } = useSpeechRecognition(setMessage);
-
-  /* ================= SESSION INIT ================= */
+  /* ================= GOOGLE LOGIN REDIRECT ================= */
   useEffect(() => {
-    let s = localStorage.getItem("chat-session");
-    if (!s) {
-      s = "session-" + Date.now();
-      localStorage.setItem("chat-session", s);
-    }
-    setSessionId(s);
-  }, []);
-
-  /* ================= FETCH SESSIONS ================= */
-  const fetchSessions = useCallback(async () => {
-    try {
-      const res = await fetchSessionsAPI();
-      setSessions(res.data.sessions || []);
-    } catch (err) {
-      console.error(err);
+    const token = getTokenFromURL();
+    if (token) {
+      localStorage.setItem("token", token);
+      window.history.replaceState({}, document.title, "/"); // clean URL
+      setIsAuth(true);
     }
   }, []);
-
-  useEffect(() => {
-    fetchSessions();
-  }, [fetchSessions]);
-
-  /* ================= FETCH CHAT HISTORY ================= */
-  useEffect(() => {
-    if (!sessionId || isInitialized) return;
-
-    fetchHistoryAPI(sessionId).then(res => {
-      const history = [];
-
-      res.data.history?.forEach(item => {
-        history.push({ role: "user", text: item.userMessage });
-        history.push({ role: "assistant", text: item.botReply });
-      });
-
-      setChat(history);
-      setIsInitialized(true);
-    });
-  }, [sessionId, isInitialized]);
-
-  /* ================= SEND MESSAGE ================= */
-  const sendMessage = async () => {
-    if (!message.trim()) return;
-
-    setChat(prev => [...prev, { role: "user", text: message }]);
-    const current = message;
-    setMessage("");
-    setLoading(true);
-
-    try {
-      const res = await sendMessageAPI(current, sessionId);
-      const aiText = res.data.reply;
-
-      setChat(prev => [...prev, { role: "assistant", text: aiText }]);
-      fetchSessions();
-    } catch (err) {
-      setChat(prev => [
-        ...prev,
-        { role: "assistant", text: "Error generating response." }
-      ]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  /* ================= AUTO SCROLL ================= */
-  useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [chat]);
-
-  /* ================= NEW CHAT ================= */
-  const createNewChat = () => {
-    const id = "session-" + Date.now();
-    localStorage.setItem("chat-session", id);
-    setSessionId(id);
-    setChat([]);
-    setIsInitialized(true);
-  };
-
-  /* ================= SWITCH CHAT ================= */
-  const switchSession = id => {
-    localStorage.setItem("chat-session", id);
-    setSessionId(id);
-    setChat([]);
-    setIsInitialized(false);
-  };
 
   return (
-    <div className="app">
-      <Sidebar
-        sessions={sessions}
-        sessionId={sessionId}
-        fetchSessions={fetchSessions}
-        createNewChat={createNewChat}
-        switchSession={switchSession}
-        toggleTheme={toggleTheme}
-        darkMode={darkMode}
+    <Routes>
+      {/* Default route */}
+      <Route
+        path="/"
+        element={isAuth ? <Navigate to="/chat" /> : <Navigate to="/register" />}
       />
 
-      <ChatContainer
-        chat={chat}
-        loading={loading}
-        chatEndRef={chatEndRef}
-        message={message}
-        setMessage={setMessage}
-        sendMessage={sendMessage}
-        listening={listening}
-        toggleMic={toggleMic}
+      {/* Register */}
+      <Route
+        path="/register"
+        element={!isAuth ? <Register onRegistered={() => setIsAuth(true)} /> : <Navigate to="/chat" />}
       />
-    </div>
+
+      {/* Login */}
+      <Route
+        path="/login"
+        element={!isAuth ? <Login onLogin={() => setIsAuth(true)} /> : <Navigate to="/chat" />}
+      />
+
+      {/* Chat Page */}
+      <Route
+        path="/chat"
+        element={isAuth ? <ChatPage setIsAuth={setIsAuth} /> : <Navigate to="/login" />}
+      />
+
+      {/* Catch-all */}
+      <Route path="*" element={<Navigate to={isAuth ? "/chat" : "/register"} />} />
+    </Routes>
   );
 }
 
