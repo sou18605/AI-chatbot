@@ -20,7 +20,11 @@ export default function ChatContainer({
     const token = localStorage.getItem("token");
     try {
       await axios.post(
+<<<<<<< HEAD
         "https://ai-chatbot-8-2hi4.onrender.com/api/auth/logout",
+=======
+        "http://localhost:5000/api/auth/logout",
+>>>>>>> 36d918a (changes)
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );

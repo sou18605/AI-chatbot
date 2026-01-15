@@ -11,7 +11,11 @@ export default function Login({ onLogin }) {
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
+<<<<<<< HEAD
       const res = await axios.post("https://ai-chatbot-8-2hi4.onrender.com/api/auth/login", { email, password });
+=======
+      const res = await axios.post("http://localhost:5000/api/auth/login", { email, password });
+>>>>>>> 36d918a (changes)
 
       // Save token and user info
       localStorage.setItem("token", res.data.token);
@@ -28,7 +32,11 @@ export default function Login({ onLogin }) {
   };
 
   const handleGoogleLogin = () => {
+<<<<<<< HEAD
     window.location.href = "https://ai-chatbot-8-2hi4.onrender.com/api/auth/google";
+=======
+    window.location.href = "http://localhost:5000/api/auth/google";
+>>>>>>> 36d918a (changes)
   };
 
   return (

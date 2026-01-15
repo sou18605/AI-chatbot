@@ -6,57 +6,61 @@ import Register from "./pages/Register";
 import ChatPage from "./pages/ChatPage";
 
 function App() {
-  // Get token from URL (Google OAuth redirect)
-  const getTokenFromURL = () => {
-    const params = new URLSearchParams(window.location.search);
-    return params.get("token");
-  };
+  const [message, setMessage] = useState("");
+  const [chat, setChat] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [sessionId, setSessionId] = useState("");
+  const [sessions, setSessions] = useState([]);
+  const [isInitialized, setIsInitialized] = useState(false);
 
-  const initialToken = localStorage.getItem("token") || getTokenFromURL();
-  const [isAuth, setIsAuth] = useState(!!initialToken);
+  const chatEndRef = useRef(null);
+
+  const { darkMode, toggleTheme } = useTheme();
+  const { listening, toggleMic } = useSpeechRecognition(setMessage);
 
   /* ================= GOOGLE LOGIN REDIRECT ================= */
   useEffect(() => {
-    const token = getTokenFromURL();
-    if (token) {
-      localStorage.setItem("token", token);
-      window.history.replaceState({}, document.title, "/");
-      setIsAuth(true);
+    let s = localStorage.getItem("chat-session");
+    if (!s) {
+      s = "session-" + Date.now();
+      localStorage.setItem("chat-session", s);
+    }
+    setSessionId(s);
+  }, []);
+
+  /* ================= FETCH SESSIONS ================= */
+  const fetchSessions = useCallback(async () => {
+    try {
+      const res = await fetchSessionsAPI();
+      setSessions(res.data.sessions || []);
+    } catch (err) {
+      console.error(err);
     }
   }, []);
 
   return (
-    <Routes>
-      {/* Default route */}
-      <Route
-        path="/"
-        element={isAuth ? <Navigate to="/chat" /> : <Navigate to="/login" />}
+    <div className="app">
+      <Sidebar
+        sessions={sessions}
+        sessionId={sessionId}
+        fetchSessions={fetchSessions}
+        createNewChat={createNewChat}
+        switchSession={switchSession}
+        toggleTheme={toggleTheme}
+        darkMode={darkMode}
       />
 
-      {/* Register */}
-      <Route
-        path="/register"
-        element={!isAuth ? <Register /> : <Navigate to="/chat" />}
+      <ChatContainer
+        chat={chat}
+        loading={loading}
+        chatEndRef={chatEndRef}
+        message={message}
+        setMessage={setMessage}
+        sendMessage={sendMessage}
+        listening={listening}
+        toggleMic={toggleMic}
       />
-
-      {/* Login */}
-      <Route
-        path="/login"
-        element={!isAuth ? <Login onLogin={() => setIsAuth(true)} /> : <Navigate to="/chat" />}
-      />
-
-      {/* Chat Page */}
-      <Route
-        path="/chat"
-        element={isAuth ? <ChatPage setIsAuth={setIsAuth} /> : <Navigate to="/login" />}
-      />
-
-      {/* Catch-all */}
-      <Route
-        path="*"
-        element={<Navigate to={isAuth ? "/chat" : "/login"} />}
-      />
-    </Routes>
+    </div>
   );
 }
 
