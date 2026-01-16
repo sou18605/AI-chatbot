@@ -1,39 +1,21 @@
+require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
-require("dotenv").config();
-
-const connectDB = require("./config/db");
-
-/* ================= ROUTES ================= */
+const connectDB = require("./config/connectDB");
 const chatRoutes = require("./routes/chat");
 
 const app = express();
 
-/* ================= DATABASE ================= */
-connectDB();
-
-/* ================= MIDDLEWARE ================= */
-app.use(
-  cors({
-    origin: "http://localhost:5173", // frontend URL
-    credentials: true
-  })
-);
-
+// ===== Middleware =====
+app.use(cors());
 app.use(express.json());
 
-/* ================= ROUTES ================= */
+// ===== Connect MongoDB =====
+connectDB();
 
-// 🧠 AI Chat routes (NO authentication)
+// ===== Routes =====
 app.use("/api/chat", chatRoutes);
 
-/* ================= HEALTH CHECK ================= */
-app.get("/", (req, res) => {
-  res.send("API is running");
-});
-
-/* ================= SERVER ================= */
+// ===== Start server =====
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-});
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

@@ -4,8 +4,14 @@ const Chat = require("../models/Chat");
 
 const router = express.Router();
 
-/* ================= SEND MESSAGE ================= */
-router.post("/", async (req, res) => {
+// ===== TEMP: Mock user (replace with JWT auth later) =====
+router.use((req, res, next) => {
+  req.user = { id: "test-user-123" }; // mock user
+  next();
+});
+
+// ===== SEND MESSAGE =====
+router.post("/send", async (req, res) => {
   try {
     const { message, sessionId } = req.body;
     const userId = req.user.id;
@@ -14,7 +20,7 @@ router.post("/", async (req, res) => {
       return res.status(400).json({ error: "Message & sessionId required" });
     }
 
-    // 🔐 Fetch ONLY this user's chat history
+    // ===== Fetch last 10 messages from this session =====
     const history = await Chat.find({ userId, sessionId })
       .sort({ createdAt: 1 })
       .limit(10);
@@ -23,7 +29,7 @@ router.post("/", async (req, res) => {
       {
         role: "system",
         content:
-          "You are a helpful AI assistant. Use headings, bullet points, short paragraphs."
+          "You are a helpful AI assistant. Use headings, bullet points, and short paragraphs."
       },
       ...history.flatMap(chat => [
         { role: "user", content: chat.userMessage },
@@ -32,6 +38,7 @@ router.post("/", async (req, res) => {
       { role: "user", content: message }
     ];
 
+    // ===== Call Nebius AI API =====
     const response = await axios.post(
       "https://api.tokenfactory.nebius.com/v1/chat/completions",
       {
@@ -50,6 +57,7 @@ router.post("/", async (req, res) => {
 
     const reply = response.data.choices[0].message.content;
 
+    // ===== Save chat to DB =====
     await Chat.create({
       userId,
       sessionId,
@@ -59,34 +67,33 @@ router.post("/", async (req, res) => {
 
     res.json({ reply });
   } catch (err) {
-    console.error(err.response?.data || err.message);
+    console.error("Nebius API error:", err.response?.data || err.message);
     res.status(500).json({ error: "AI generation failed" });
   }
 });
 
-/* ================= CHAT HISTORY ================= */
+// ===== CHAT HISTORY =====
 router.get("/history/:sessionId", async (req, res) => {
   try {
     const userId = req.user.id;
     const { sessionId } = req.params;
 
-    const history = await Chat.find({ userId, sessionId }).sort({
-      createdAt: 1
-    });
+    const history = await Chat.find({ userId, sessionId }).sort({ createdAt: 1 });
 
     res.json({ history });
   } catch (err) {
+    console.error(err.message);
     res.status(500).json({ error: "Failed to fetch history" });
   }
 });
 
-/* ================= USER SESSIONS ================= */
+// ===== USER SESSIONS =====
 router.get("/sessions", async (req, res) => {
   try {
     const userId = req.user.id;
 
     const sessions = await Chat.aggregate([
-      { $match: { userId: userId } },
+      { $match: { userId } },
       {
         $group: {
           _id: "$sessionId",
@@ -95,23 +102,12 @@ router.get("/sessions", async (req, res) => {
         }
       },
       {
-        $addFields: {
-          title: {
-            $cond: {
-              if: { $gt: [{ $strLenCP: "$firstMessage" }, 60] },
-              then: {
-                $concat: [{ $substrCP: ["$firstMessage", 0, 60] }, "..."]
-              },
-              else: "$firstMessage"
-            }
-          }
-        }
+        $sort: { lastUpdated: -1 }
       },
-      { $sort: { lastUpdated: -1 } },
       {
         $project: {
           sessionId: "$_id",
-          title: 1,
+          title: "$firstMessage",
           lastUpdated: 1,
           _id: 0
         }
@@ -120,6 +116,7 @@ router.get("/sessions", async (req, res) => {
 
     res.json({ sessions });
   } catch (err) {
+    console.error(err.message);
     res.status(500).json({ error: "Failed to fetch sessions" });
   }
 });
