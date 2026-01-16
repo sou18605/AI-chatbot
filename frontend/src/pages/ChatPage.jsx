@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
 
 import Sidebar from "../components/Sidebar";
 import ChatContainer from "../components/ChatContainer";
@@ -14,9 +13,7 @@ import {
 
 import "../App.css";
 
-export default function ChatPage({ setIsAuth }) {
-  const navigate = useNavigate();
-
+export default function ChatPage() {
   const [message, setMessage] = useState("");
   const [chat, setChat] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -27,17 +24,6 @@ export default function ChatPage({ setIsAuth }) {
   const chatEndRef = useRef(null);
   const { darkMode, toggleTheme } = useTheme();
   const { listening, toggleMic } = useSpeechRecognition(setMessage);
-
-  /* ================= AUTH GUARD ================= */
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      setIsAuth(false);
-      navigate("/login", { replace: true });
-    } else {
-      setIsAuth(true);
-    }
-  }, [navigate, setIsAuth]);
 
   /* ================= SESSION INIT ================= */
   useEffect(() => {
@@ -144,7 +130,6 @@ export default function ChatPage({ setIsAuth }) {
         sendMessage={sendMessage}
         listening={listening}
         toggleMic={toggleMic}
-        setIsAuth={setIsAuth}
       />
     </div>
   );

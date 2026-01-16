@@ -6,12 +6,6 @@ const connectDB = require("./config/db");
 
 /* ================= ROUTES ================= */
 const chatRoutes = require("./routes/chat");
-const authRoutes = require("./routes/authRoutes");
-
-/* ================= AUTH ================= */
-const passport = require("passport");
-require("./config/passport");
-const authMiddleware = require("./middleware/authMiddleware");
 
 const app = express();
 
@@ -19,22 +13,19 @@ const app = express();
 connectDB();
 
 /* ================= MIDDLEWARE ================= */
-app.use(cors({
-  origin: "http://localhost:5173", // frontend URL
-  credentials: true
-}));
-app.use(express.json());
+app.use(
+  cors({
+    origin: "http://localhost:5173", // frontend URL
+    credentials: true
+  })
+);
 
-/* ================= PASSPORT ================= */
-app.use(passport.initialize());
+app.use(express.json());
 
 /* ================= ROUTES ================= */
 
-// 🔐 Protected AI chat routes (JWT required)
-app.use("/api/chat", authMiddleware, chatRoutes);
-
-// 🔓 Auth routes (login, register, google)
-app.use("/api/auth", authRoutes);
+// 🧠 AI Chat routes (NO authentication)
+app.use("/api/chat", chatRoutes);
 
 /* ================= HEALTH CHECK ================= */
 app.get("/", (req, res) => {
