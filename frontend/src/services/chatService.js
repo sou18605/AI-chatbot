@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const API = axios.create({
-  baseURL: "http://localhost:5000/api",
+  baseURL: "https://ai-chatbot-10-5xb3.onrender.com/api",
 });
 
 export const fetchSessionsAPI = () => API.get("/chat/sessions");
